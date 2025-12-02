@@ -1,0 +1,423 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { User, Send, Heart, Gift, Shield, Sparkles } from 'lucide-react';
+
+/**
+ * UTILITIES & DATA
+ */
+
+// Replaced icons with image placeholders representing game assets
+// In a production environment, replace these URLs with actual transparent PNGs of the weapons/bundles
+const SKINS = [
+  { 
+    id: 1, 
+    name: "AK47 - Blue Draco", 
+    rarity: "LEGENDARY", 
+    color: "from-blue-600 to-cyan-400", 
+    img: "https://pbs.twimg.com/media/EmqnrvkVEAAVyQZ.png" 
+  },
+  { 
+    id: 2, 
+    name: "M1014 - Green Flame", 
+    rarity: "MYTHIC", 
+    color: "from-green-600 to-emerald-400", 
+    img: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi3tQ1Okzy6KED1mVxTaShuypjim8f9R1p_ehRBmdzmLbQKWvsx7XDZI0PCkII2AVkdkYjF_cMM4TUivOOD_-i-oMCoDG9WKvyl7xaGisbLbH3Jf6tssgBhdfrmKdva-z5ThcsYL2i1T7eg/s1412/M1014+Green+Flame+Draco.png" 
+  },
+  { 
+    id: 3, 
+    name: "MP40 - Predatory Cobra", 
+    rarity: "EVO", 
+    color: "from-red-600 to-orange-500", 
+    img: "https://static.wikia.nocookie.net/garena-freefire/images/0/05/Predatory_Cobra.png/revision/latest?cb=20210807154158" 
+  },
+  { 
+    id: 4, 
+    name: "Scar - Megalodon", 
+    rarity: "LEGENDARY", 
+    color: "from-red-700 to-pink-600", 
+    img: "https://i.ibb.co/B59Kgh63/dea70ec152f378c4837a94e8b2bf514b-removebg-preview.png" 
+  },
+  { 
+    id: 5, 
+    name: "Bunny Warrior Bundle", 
+    rarity: "RARE", 
+    color: "from-purple-600 to-indigo-500", 
+    img: "https://i.ibb.co/svxwhzKs/d5e5fe72d109cb23c73d27df08097bc0-removebg-preview.png" 
+  },
+];
+
+const FAKE_COMMENTS = [
+  "OMG IT WORKS! 😱",
+  "Just got the Draco!",
+  "ID: 88291022 sent",
+  "How do I get the cobra??",
+  "First try lol",
+  "Is this real??",
+  "Claimed mine thanks!",
+];
+
+/**
+ * COMPONENTS
+ */
+
+// Background Particle Effect (Embers)
+const Embers = () => {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    let width = canvas.width = window.innerWidth;
+    let height = canvas.height = window.innerHeight;
+    
+    const particles = [];
+    
+    for(let i=0; i<50; i++) {
+      particles.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        size: Math.random() * 3 + 1,
+        speedY: Math.random() * 2 + 0.5,
+        opacity: Math.random()
+      });
+    }
+
+    const animate = () => {
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = '#FF4400';
+      
+      particles.forEach(p => {
+        p.y -= p.speedY;
+        p.opacity -= 0.01;
+        if(p.y < 0 || p.opacity <= 0) {
+          p.y = height;
+          p.x = Math.random() * width;
+          p.opacity = 1;
+        }
+        ctx.globalAlpha = p.opacity;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      requestAnimationFrame(animate);
+    };
+
+    animate();
+
+    const handleResize = () => {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  return <canvas ref={canvasRef} className="fixed inset-0 z-0 pointer-events-none opacity-50" />;
+};
+
+// Floating Hearts Animation on Click
+const ClickEffects = () => {
+  const [clicks, setClicks] = useState([]);
+
+  useEffect(() => {
+    const handleClick = (e) => {
+      const id = Date.now();
+      setClicks(prev => [...prev, { x: e.clientX, y: e.clientY, id }]);
+      setTimeout(() => setClicks(prev => prev.filter(c => c.id !== id)), 1000);
+    };
+
+    window.addEventListener('click', handleClick);
+    return () => window.removeEventListener('click', handleClick);
+  }, []);
+
+  return (
+    <div className="fixed inset-0 pointer-events-none z-50">
+      {clicks.map(c => (
+        <div key={c.id} 
+             className="absolute animate-float-up text-red-500 drop-shadow-lg"
+             style={{ left: c.x, top: c.y }}>
+          <Heart fill="currentColor" size={24} />
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// Fake Live Feed Overlay
+const LiveOverlay = () => {
+  const [comment, setComment] = useState(FAKE_COMMENTS[0]);
+  const [viewers, setViewers] = useState(1204);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setComment(FAKE_COMMENTS[Math.floor(Math.random() * FAKE_COMMENTS.length)]);
+      setViewers(prev => prev + Math.floor(Math.random() * 10) - 3);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="fixed top-0 left-0 w-full p-4 z-40 flex justify-between items-start pointer-events-none">
+      <div className="bg-black/60 backdrop-blur-md text-white px-3 py-1 rounded-full flex items-center gap-2 border border-yellow-500/30">
+        <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+        <span className="font-bold font-mono text-sm">{viewers.toLocaleString()} ONLINE</span>
+      </div>
+      
+      <div className="flex flex-col items-end gap-2">
+         <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-xl border-l-4 border-yellow-500 animate-slide-in-right max-w-[200px]">
+            <p className="text-yellow-400 text-xs font-bold">Latest Win:</p>
+            <p className="text-white text-xs font-medium truncate">User882... got EVO MP40!</p>
+         </div>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * MAIN APP COMPONENT
+ */
+export default function App() {
+  const [step, setStep] = useState('LANDING'); // LANDING, SPINNING, REVEAL, FORM, SUCCESS
+  const [skin, setSkin] = useState(null);
+  const [nickname, setNickname] = useState('');
+  const [isShaking, setIsShaking] = useState(false);
+
+  // Sound simulation (visual)
+  const triggerShake = () => {
+    setIsShaking(true);
+    setTimeout(() => setIsShaking(false), 500);
+  };
+
+  const handleSpin = () => {
+    triggerShake();
+    setStep('SPINNING');
+    
+    // Simulate roulette
+    let counter = 0;
+    const interval = setInterval(() => {
+      setSkin(SKINS[Math.floor(Math.random() * SKINS.length)]);
+      counter++;
+      if (counter > 15) {
+        clearInterval(interval);
+        const finalSkin = SKINS[2]; // Rigged to give the cool Cobra skin usually
+        setSkin(finalSkin);
+        triggerShake();
+        setStep('REVEAL');
+      }
+    }, 100);
+  };
+
+  const handleClaim = () => {
+    setStep('FORM');
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!nickname) return;
+    setStep('PROCESSING');
+    setTimeout(() => {
+      setStep('SUCCESS');
+      triggerShake();
+    }, 2000);
+  };
+
+  return (
+    <div className={`min-h-screen bg-neutral-900 text-white font-sans overflow-hidden relative selection:bg-yellow-500 selection:text-black ${isShaking ? 'animate-shake' : ''}`}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Roboto:ital,wght@0,400;0,700;0,900;1,900&display=swap');
+        
+        .font-gaming { font-family: 'Black Ops One', system-ui; }
+        
+        @keyframes float-up {
+          0% { transform: translateY(0) scale(1); opacity: 1; }
+          100% { transform: translateY(-100px) scale(1.5); opacity: 0; }
+        }
+        .animate-float-up { animation: float-up 1s ease-out forwards; }
+        
+        @keyframes shake {
+          0%, 100% { transform: translate(0, 0); }
+          10%, 30%, 50%, 70%, 90% { transform: translate(-5px, -5px) rotate(-1deg); }
+          20%, 40%, 60%, 80% { transform: translate(5px, 5px) rotate(1deg); }
+        }
+        .animate-shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+
+        @keyframes ray-rotate {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .animate-spin-slow { animation: ray-rotate 10s linear infinite; }
+
+        @keyframes pop-in {
+          0% { transform: scale(0); opacity: 0; }
+          80% { transform: scale(1.1); opacity: 1; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop-in { animation: pop-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+      `}</style>
+
+      <Embers />
+      <ClickEffects />
+      <LiveOverlay />
+
+      {/* Main Content Area */}
+      <main className="relative z-10 h-screen flex flex-col items-center justify-center p-4">
+        
+        {/* LANDING STATE */}
+        {step === 'LANDING' && (
+          <div className="text-center space-y-8 animate-pop-in max-w-md w-full">
+            <div className="relative">
+              <div className="absolute -inset-4 bg-yellow-500 rounded-full opacity-20 blur-xl animate-pulse"></div>
+              {/* Changed from FREE LOOT to FFire LOOT with Logo Styling */}
+              <h1 className="relative font-gaming text-6xl md:text-7xl text-transparent bg-clip-text bg-gradient-to-br from-[#FFDA3D] to-[#FF8C00] drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] filter italic tracking-tighter transform -skew-x-6">
+                FFire<br/>LOOT
+              </h1>
+            </div>
+            
+            <div className="bg-black/50 backdrop-blur-sm p-6 rounded-2xl border border-yellow-500/30 shadow-2xl transform rotate-1">
+              <p className="text-xl font-bold italic mb-4 text-gray-200">SEASON 24 EXCLUSIVE</p>
+              {/* Replaced generic icons with mini previews of the skins */}
+              <div className="grid grid-cols-2 gap-2 mb-6 opacity-80">
+                {SKINS.slice(0, 4).map((s) => (
+                    <div key={s.id} className="bg-neutral-800/80 p-2 rounded border border-neutral-700 flex items-center justify-center overflow-hidden">
+                        <img src={s.img} alt="preview" className="w-10 h-10 object-contain drop-shadow" />
+                    </div>
+                ))}
+              </div>
+              <button 
+                onClick={handleSpin}
+                className="w-full bg-gradient-to-r from-yellow-400 to-orange-600 hover:from-yellow-300 hover:to-orange-500 text-black font-gaming text-2xl py-4 rounded-xl shadow-[0_0_20px_rgba(255,165,0,0.5)] transform transition hover:scale-105 active:scale-95 uppercase tracking-wider skew-x-[-10deg]"
+              >
+                SPIN NOW
+              </button>
+            </div>
+            
+            {/* Removed the word "FREE" */}
+            <p className="text-xs text-neutral-500">Limited time event. 98% Success Rate.</p>
+          </div>
+        )}
+
+        {/* SPINNING STATE */}
+        {step === 'SPINNING' && (
+          <div className="text-center space-y-6">
+            <div className="w-64 h-64 relative mx-auto">
+              <div className="absolute inset-0 border-4 border-yellow-500 rounded-2xl animate-spin"></div>
+              <div className="absolute inset-0 bg-neutral-800 rounded-2xl flex items-center justify-center overflow-hidden border-4 border-neutral-700">
+                <div className="animate-pulse scale-100 transform transition-all duration-75">
+                   {/* Render Image instead of Icon */}
+                   {skin && <img src={skin.img} alt={skin.name} className="w-48 h-48 object-contain drop-shadow-xl" />}
+                </div>
+              </div>
+            </div>
+            <h2 className="font-gaming text-3xl animate-pulse text-yellow-400">GENERATING...</h2>
+          </div>
+        )}
+
+        {/* REVEAL STATE */}
+        {step === 'REVEAL' && skin && (
+          <div className="text-center space-y-6 animate-pop-in w-full max-w-md relative">
+            {/* Sunburst Effect */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent rounded-full blur-3xl animate-pulse -z-10"></div>
+            
+            <div className={`mx-auto bg-gradient-to-br ${skin.color} p-1 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] rotate-3 hover:rotate-0 transition-transform duration-500`}>
+              <div className="bg-black/90 p-8 rounded-[22px] flex flex-col items-center gap-4 relative overflow-hidden">
+                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20"></div>
+                
+                <span className="bg-yellow-500 text-black font-bold px-3 py-1 rounded text-xs tracking-widest uppercase z-10">
+                  {skin.rarity}
+                </span>
+                
+                <div className={`relative w-48 h-48 flex items-center justify-center p-4 rounded-full bg-gradient-to-br ${skin.color} shadow-lg z-10`}>
+                  <img src={skin.img} alt={skin.name} className="w-full h-full object-contain drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)] transform hover:scale-110 transition-transform" />
+                </div>
+                
+                <h2 className="font-gaming text-3xl text-white uppercase text-center leading-tight z-10">
+                  {skin.name}
+                </h2>
+              </div>
+            </div>
+
+            <button 
+              onClick={handleClaim}
+              className="w-full bg-green-500 hover:bg-green-400 text-black font-gaming text-2xl py-4 rounded-xl shadow-[0_0_30px_rgba(34,197,94,0.4)] animate-bounce uppercase"
+            >
+              CLAIM REWARD
+            </button>
+          </div>
+        )}
+
+        {/* FORM STATE */}
+        {step === 'FORM' && (
+          <div className="w-full max-w-sm bg-neutral-800/90 backdrop-blur-md p-6 rounded-2xl border border-neutral-700 shadow-2xl animate-pop-in">
+            <h3 className="font-gaming text-2xl text-center mb-1 text-white">PLAYER ID</h3>
+            <p className="text-center text-neutral-400 text-sm mb-6">Enter your ID to receive the item immediately.</p>
+            
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="relative group">
+                <User className="absolute left-3 top-3.5 text-neutral-500 group-focus-within:text-yellow-400 transition-colors" size={20} />
+                <input 
+                  type="text" 
+                  placeholder="e.g. 192837465"
+                  className="w-full bg-black/50 border border-neutral-600 rounded-xl py-3 pl-10 pr-4 text-white focus:outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 transition-all font-mono"
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                  autoFocus
+                />
+              </div>
+              
+              <div className="flex gap-2 text-xs text-neutral-500 bg-black/30 p-2 rounded border border-neutral-800">
+                <Shield size={14} className="text-green-500 shrink-0" />
+                <span>Anti-ban protection active. Safe connection established.</span>
+              </div>
+
+              <button 
+                type="submit"
+                className={`w-full font-gaming text-xl py-3 rounded-xl transition-all flex items-center justify-center gap-2
+                  ${nickname ? 'bg-yellow-500 text-black shadow-[0_0_20px_rgba(234,179,8,0.4)] hover:scale-105' : 'bg-neutral-700 text-neutral-500 cursor-not-allowed'}`}
+                disabled={!nickname}
+              >
+                SEND TO VAULT <Send size={20} />
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* PROCESSING STATE */}
+        {step === 'PROCESSING' && (
+           <div className="text-center max-w-sm w-full">
+             <div className="bg-neutral-800/80 rounded-full h-4 w-full overflow-hidden mb-4 border border-neutral-700">
+               <div className="h-full bg-gradient-to-r from-yellow-400 to-red-500 w-full animate-[width_2s_ease-in-out]"></div>
+             </div>
+             <p className="font-mono text-green-400 animate-pulse">CONNECTING TO SERVER...</p>
+             <p className="text-xs text-neutral-500 mt-2">Validating ID: {nickname}</p>
+           </div>
+        )}
+
+        {/* SUCCESS STATE */}
+        {step === 'SUCCESS' && (
+          <div className="text-center animate-pop-in relative z-20">
+            <div className="inline-block p-6 rounded-full bg-green-500/20 mb-6 relative">
+              <div className="absolute inset-0 animate-ping rounded-full bg-green-400/20"></div>
+              <Gift size={64} className="text-green-400 drop-shadow-[0_0_10px_rgba(74,222,128,0.8)]" />
+            </div>
+            
+            <h2 className="font-gaming text-5xl text-white mb-2 drop-shadow-lg">SENT!</h2>
+            <p className="text-xl text-neutral-300 mb-8 max-w-xs mx-auto leading-relaxed">
+              <span className="text-yellow-400 font-bold">{nickname}</span>, check your in-game mail in 5-10 minutes.
+            </p>
+
+            <div className="bg-neutral-900/80 p-4 rounded-xl border border-neutral-800 max-w-xs mx-auto">
+              <p className="text-xs text-neutral-400 mb-2">Share to speed up delivery:</p>
+              <button className="w-full bg-[#25F4EE] text-black font-bold py-2 rounded flex items-center justify-center gap-2 hover:bg-white transition-colors">
+                <Sparkles size={16} /> SHARE WITH FRIENDS
+              </button>
+            </div>
+          </div>
+        )}
+
+      </main>
+
+      {/* Decorative Bottom Bar */}
+      <div className="fixed bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-yellow-500 to-transparent opacity-50"></div>
+    </div>
+  );
+}
